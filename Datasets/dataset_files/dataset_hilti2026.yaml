@@ -1,0 +1,12 @@
+dataset_name: hilti2026
+
+rgb_hz: 30.0
+modes: ['mono']
+cam_models: ['equid4']
+
+sequence_names:
+  - floor_1_2025-05-05_run_1
+  - floor_2_2025-05-05_run_1
+  - floor_2_2025-10-28_run_1
+  - floor_2_2025-10-28_run_2
+  - floor_UG1_2025-10-16_run_1

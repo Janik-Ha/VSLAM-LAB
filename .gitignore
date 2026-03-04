@@ -44,3 +44,11 @@ configs/exp_demo.yaml
 .vscode/
 
 app.log
+
+# own files
+*.png
+*.csv
+*.txt
+custom_datasets
+VSLAM-LAB-Benchmark
+VSLAM-LAB-Evaluation

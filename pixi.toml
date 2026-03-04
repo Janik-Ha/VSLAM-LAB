@@ -104,6 +104,8 @@ download-sequence = "python vslamlab_gui.py download_sequence"
 download-sequences = "python vslamlab_gui.py download_sequences"
 download-dataset = "python vslamlab_gui.py download_dataset"
 
+setup-hilti2026 = "bash Utilities/setup_hilti2026.sh"
+
 run-exp = "python vslamlab_gui.py run_exp"
 evaluate-exp = "python vslamlab_gui.py evaluate_exp"
 compare-exp = "python vslamlab_gui.py compare_exp"
@@ -133,6 +135,11 @@ psutil = "*"
 loguru = "*"
 utm = "*"
 7zip = "*"
+
+[feature.vslamlab.pypi-dependencies]
+rosbags = "*"
+rosbags-image = "*"
+gdown = "*"
 
 ########################################################################################################################
 ########################################################################################################################

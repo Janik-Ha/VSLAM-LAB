@@ -43,6 +43,7 @@ from Datasets.dataset_eth3d_mvs_dslr import ETH3D_MVS_DSLR_dataset
 from Datasets.dataset_yandiwanba import YANDIWANBA_dataset
 from Datasets.dataset_antarctica import ANTARCTICA_dataset
 from Datasets.dataset_hilti2022 import HILTI2022_dataset
+from Datasets.dataset_hilti2026 import HILTI2026_dataset
 from Datasets.dataset_madmax import MADMAX_dataset
 from Datasets.dataset_videos import VIDEOS_dataset
 from Datasets.dataset_sweetcorals import SWEETCORALS_dataset
@@ -87,6 +88,7 @@ def get_dataset(dataset_name, benchmark_path):
         "yandiwanba": lambda: YANDIWANBA_dataset(benchmark_path),
         "antarctica": lambda: ANTARCTICA_dataset(benchmark_path),
         "hilti2022": lambda: HILTI2022_dataset(benchmark_path),
+        "hilti2026": lambda: HILTI2026_dataset(benchmark_path),
         "madmax": lambda: MADMAX_dataset(benchmark_path),
         "videos": lambda: VIDEOS_dataset(benchmark_path),
         "sweetcorals": lambda: SWEETCORALS_dataset(benchmark_path),

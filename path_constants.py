@@ -4,12 +4,14 @@ from enum import Enum
 from pathlib import Path
 
 VSLAM_LAB_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
-VSLAM_LAB_PATH = Path(os.path.dirname(VSLAM_LAB_DIR))
+# Keep VSLAM_LAB_PATH equal to the repo root (same as VSLAM_LAB_DIR)
+VSLAM_LAB_PATH = VSLAM_LAB_DIR
 
-VSLAMLAB_BENCHMARK = VSLAM_LAB_PATH / "VSLAM-LAB-Benchmark"
-VSLAMLAB_EVALUATION = VSLAM_LAB_PATH / 'VSLAM-LAB-Evaluation'
-VSLAMLAB_BASELINES = VSLAM_LAB_DIR / 'Baselines'
-VSLAMLAB_VIDEOS = "/media/alejandro/data/VSLAM-LAB-Benchmark/VIDEOS"
+# Store benchmark/evaluation folders inside the repo, without using the parent directory
+VSLAMLAB_BENCHMARK = VSLAM_LAB_DIR / "VSLAM-LAB-Benchmark"
+VSLAMLAB_EVALUATION = VSLAM_LAB_DIR / "VSLAM-LAB-Evaluation"
+VSLAMLAB_BASELINES = VSLAM_LAB_DIR / "Baselines"
+VSLAMLAB_VIDEOS = VSLAMLAB_BENCHMARK / "VIDEOS"
 
 COMPARISONS_YAML_DEFAULT = VSLAM_LAB_DIR / 'configs' / 'comp_complete.yaml'
 EXP_YAML_DEFAULT = 'exp_debug.yaml'
@@ -38,7 +40,8 @@ VerbosityManager = {
 }
 
 def set_VSLAMLAB_path(new_path, file_path, target_line_start):
-    new_line = f"{target_line_start} \"{new_path}\""
+    # Always write paths as Path(...) so callers can use "/" safely
+    new_line = f"{target_line_start} Path(\"{new_path}\")"
     print(f"{SCRIPT_LABEL}Set {new_line}")
 
     with open(file_path, 'r') as file:
