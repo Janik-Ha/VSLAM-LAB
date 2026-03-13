@@ -52,3 +52,4 @@ app.log
 custom_datasets
 VSLAM-LAB-Benchmark
 VSLAM-LAB-Evaluation
+.gitmodules

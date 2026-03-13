@@ -76,7 +76,7 @@ class BaselineVSLAMLab(ABC):
         if self.is_installed()[0]:
             return
 
-        log_file_path = self.baseline_path / f'install_{self.baseline_name}.txt'
+        log_file_path = VSLAMLAB_BASELINES / f'install_{self.baseline_name}.txt'
         install_command = f"pixi run --frozen -e {self.baseline_name} install -v"
         with open(log_file_path, 'w') as log_file:
             print(f"\n{SCRIPT_LABEL}Installing {self.label}\033[0m : {self.baseline_path}")
@@ -108,24 +108,33 @@ class BaselineVSLAMLab(ABC):
             _ = hf_hub_download(repo_id=f'vslamlab/{self.baseline_name}', filename=settings_yaml, repo_type='model', local_dir=self.baseline_path)
         return self.settings_yaml.is_file()
     
+    def _quote_if_spaces(self, s: str) -> str:
+        """Escape string for shell if it contains spaces (so paths like '.../Janik Hackel/...' are one argument)."""
+        s = str(s)
+        if ' ' in s:
+            # Backslash-escape spaces so the C++ binary receives one argument with spaces, no quote chars in path
+            return s.replace(' ', '\\ ')
+        return s
+
     def build_execute_command_cpp(self, exp_it, exp, dataset, sequence_name):
         sequence_path = dataset.dataset_path / sequence_name
         exp_folder = Path(exp.folder) / dataset.dataset_folder / sequence_name
         calibration_yaml = sequence_path / 'calibration.yaml'
         rgb_exp_csv = exp_folder / 'rgb_exp.csv'
 
-        vslamlab_command = [f"sequence_path:{sequence_path}",
-                            f"calibration_yaml:{calibration_yaml}",
-                            f"rgb_csv:{rgb_exp_csv}",
-                            f"exp_folder:{exp_folder}",
+        vslamlab_command = [f"sequence_path:{self._quote_if_spaces(sequence_path)}",
+                            f"calibration_yaml:{self._quote_if_spaces(calibration_yaml)}",
+                            f"rgb_csv:{self._quote_if_spaces(rgb_exp_csv)}",
+                            f"exp_folder:{self._quote_if_spaces(exp_folder)}",
                             f"exp_id:{exp_it}",
-                            f"settings_yaml:{self.settings_yaml}"]
+                            f"settings_yaml:{self._quote_if_spaces(self.settings_yaml)}"]
 
         for parameter_name, parameter_value in self.default_parameters.items():
             if parameter_name in exp.parameters:
-                vslamlab_command += [f"{str(parameter_name)}:{str(exp.parameters[parameter_name])}"]
+                val = exp.parameters[parameter_name]
+                vslamlab_command += [f"{str(parameter_name)}:{self._quote_if_spaces(val)}"]
             else:
-                vslamlab_command += [f"{str(parameter_name)}:{str(parameter_value)}"]
+                vslamlab_command += [f"{str(parameter_name)}:{self._quote_if_spaces(parameter_value)}"]
 
         mode_str = next((s for s in vslamlab_command if s.startswith("mode:")), None).replace("mode:", '')
         return f"pixi run --frozen -e {self.baseline_name} execute-{mode_str} " + ' '.join(vslamlab_command)
@@ -136,18 +145,19 @@ class BaselineVSLAMLab(ABC):
         calibration_yaml = sequence_path / 'calibration.yaml'
         rgb_exp_csv = exp_folder / 'rgb_exp.csv'
 
-        vslamlab_command = [f"--sequence_path {sequence_path}",
-                            f"--calibration_yaml {calibration_yaml}",
-                            f"--rgb_csv {rgb_exp_csv}",
-                            f"--exp_folder {exp_folder}",
+        vslamlab_command = [f"--sequence_path {self._quote_if_spaces(sequence_path)}",
+                            f"--calibration_yaml {self._quote_if_spaces(calibration_yaml)}",
+                            f"--rgb_csv {self._quote_if_spaces(rgb_exp_csv)}",
+                            f"--exp_folder {self._quote_if_spaces(exp_folder)}",
                             f"--exp_it {exp_it}",
-                            f"--settings_yaml {self.settings_yaml}"]
+                            f"--settings_yaml {self._quote_if_spaces(self.settings_yaml)}"]
 
         for parameter_name, parameter_value in self.default_parameters.items():
             if parameter_name in exp.parameters:
-                vslamlab_command += [f"--{str(parameter_name)} {str(exp.parameters[parameter_name])}"]
+                val = exp.parameters[parameter_name]
+                vslamlab_command += [f"--{str(parameter_name)} {self._quote_if_spaces(val)}"]
             else:
-                vslamlab_command += [f"--{str(parameter_name)} {str(parameter_value)}"]
+                vslamlab_command += [f"--{str(parameter_name)} {self._quote_if_spaces(parameter_value)}"]
 
         mode_str = next((s for s in vslamlab_command if s.startswith("--mode ")), None).replace("--mode ", '')
         return f"pixi run --frozen -e {self.baseline_name} execute-{mode_str} " + ' '.join(vslamlab_command)

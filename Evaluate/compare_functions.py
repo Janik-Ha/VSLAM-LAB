@@ -1,6 +1,8 @@
 import os
+import warnings
 
 import matplotlib.pyplot as plt
+import pandas as pd
 import yaml
 
 from Evaluate import plot_functions
@@ -12,16 +14,44 @@ SCRIPT_LABEL = "[compare_functions.py] "
 VSLAM_LAB_ACCURACY_CSV = 'ate.csv'
 
 
+def _normalize_accuracy_df(df: pd.DataFrame) -> pd.DataFrame:
+    """Ensure accuracy DataFrame has expected columns (evo may use ape_rmse or transposed table)."""
+    if df is None or df.empty:
+        return df
+    # Evo_res table may be transposed: rows = metrics (rmse, mean, ...), cols = trajectory names
+    if df.shape[0] <= 10 and df.shape[1] > 1:
+        first_vals = df.iloc[:, 0].astype(str).str.strip().str.lower()
+        metric_like = first_vals.isin(('rmse', 'ape_rmse', 'mean', 'median', 'std', 'min', 'max', 'sse'))
+        if metric_like.sum() >= 2:  # at least 2 rows look like metric names
+            df = df.set_index(df.columns[0]).T.reset_index()
+            df = df.rename(columns={df.columns[0]: 'traj_name'})
+    # Map evo/table output to expected column name for RMSE
+    for candidate in ('rmse', 'ape_rmse', 'ATE (m)', 'ape_mean'):
+        if candidate in df.columns and 'rmse' not in df.columns:
+            df = df.rename(columns={candidate: 'rmse'})
+            break
+    if 'rmse' not in df.columns:
+        for c in df.columns:
+            if c in ('traj_name', 'name'):
+                continue
+            try:
+                pd.to_numeric(df[c], errors='raise')
+                df = df.rename(columns={c: 'rmse'})
+                break
+            except (TypeError, ValueError):
+                continue
+    return df
+
+
 def full_comparison(experiments, VSLAMLAB_BENCHMARK, COMPARISONS_YAML_DEFAULT, comparison_path):
     figures_path = os.path.join(comparison_path, "figures")
 
-    #check_yaml_file_integrity(COMPARISONS_YAML_DEFAULT)
     with open(COMPARISONS_YAML_DEFAULT, 'r') as file:
         comparisons = yaml.safe_load(file)
 
     dataset_sequences, dataset_nicknames, dataset_rgbHz, exp_names, sequence_nicknames = get_experiments(experiments)
     accuracies = get_accuracies(experiments, dataset_sequences)
-   
+
     # Comparisons switch
     def switch_comparison(comparison_):
         switcher = {
@@ -44,10 +74,13 @@ def full_comparison(experiments, VSLAMLAB_BENCHMARK, COMPARISONS_YAML_DEFAULT, c
         func = switcher.get(comparison_, lambda: "Invalid case")
         return func()
 
-    # Get comparisons
-    for comparison in comparisons:
-        if comparisons[comparison]:
-            switch_comparison(comparison)
+    # Suppress numpy "Mean of empty slice" / "invalid value in scalar divide" from boxplot on empty/small data
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message="Mean of empty slice", category=RuntimeWarning)
+        warnings.filterwarnings("ignore", message="invalid value encountered in scalar divide", category=RuntimeWarning)
+        for comparison in comparisons:
+            if comparisons[comparison]:
+                switch_comparison(comparison)
 
     plt.show()
 
@@ -127,6 +160,7 @@ def get_accuracies(experiments, dataset_sequences):
             for exp_name, exp in experiments.items():
                 accuracy_csv_file = os.path.join(exp.folder, dataset_name.upper(), sequence_name,
                                                  os.path.join(VSLAM_LAB_EVALUATION_FOLDER, VSLAM_LAB_ACCURACY_CSV))
-                accuracies[dataset_name][sequence_name][exp_name] = read_csv(accuracy_csv_file)
+                df = read_csv(accuracy_csv_file)
+                accuracies[dataset_name][sequence_name][exp_name] = _normalize_accuracy_df(df)
 
     return accuracies

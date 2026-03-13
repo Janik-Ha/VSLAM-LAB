@@ -39,11 +39,20 @@ def evaluate_sequence(exp, dataset, sequence_name, overwrite=False):
 
     print_msg(SCRIPT_LABEL, f"Evaluating '{evaluation_folder.replace(sequence_name, f"{dataset.dataset_color}{sequence_name}\033[0m")}'")
     if len(runs_to_evaluate) == 0:
+        has_success = ((exp_log["SUCCESS"] == True) | (exp_log["SUCCESS"].astype(str).str.lower() == "true")).any() if "SUCCESS" in exp_log.columns else False
+        has_none = (exp_log["EVALUATION"] == "none").any() if "EVALUATION" in exp_log.columns else False
+        print_msg(ws(4), f"No runs to evaluate (SUCCESS rows: {has_success}, EVALUATION=='none': {has_none}). Run run_exp first.", "warning")
         exp_log.to_csv(exp.log_csv, index=False)
         return
-    
+
     # Evaluate runs
     zip_files = []
+    trajectory_file_example = os.path.join(trajectories_path, f"{runs_to_evaluate[0]}_{TRAJECTORY_FILE_NAME}.csv")
+    if not os.path.exists(trajectory_file_example):
+        print_msg(ws(4), f"Trajectory file not found: {trajectory_file_example}", "error")
+        exp_log.to_csv(exp.log_csv, index=False)
+        return
+
     for exp_it in tqdm(runs_to_evaluate):
         trajectory_file = os.path.join(trajectories_path, f"{exp_it}_{TRAJECTORY_FILE_NAME}.csv")
         success = evo_metric('ate', groundtruth_csv, trajectory_file, evaluation_folder, 10e9 / dataset.rgb_hz)
@@ -53,6 +62,7 @@ def evaluate_sequence(exp, dataset, sequence_name, overwrite=False):
             exp_log.loc[(exp_log["exp_it"] == int(exp_it)) & (exp_log["sequence_name"] == sequence_name),"EVALUATION"] = 'failed'
             tqdm.write(format_msg(ws(8), f"{success[1]}", "error"))
     if len(zip_files) == 0:
+        print_msg(ws(4), f"evo_ape failed for all runs; no {METRIC}.csv written. Check ground truth and trajectory format.", "warning")
         exp_log.to_csv(exp.log_csv, index=False)
         return   
     

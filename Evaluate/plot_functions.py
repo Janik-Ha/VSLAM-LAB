@@ -92,7 +92,7 @@ def plot_trajectories(dataset_sequences, exp_names,
     there_is_gt = False
     for i_dataset, (dataset_name, sequence_names) in enumerate(dataset_sequences.items()):
         for i_sequence, sequence_name in enumerate(sequence_names):
-            #x_max , y_max = 0, 0
+            x_max, y_max = 1.0, 1.0
             aligment_with_gt = False
             for i_exp, exp_name in enumerate(exp_names):
                 vslam_lab_evaluation_folder_seq = os.path.join(experiments[exp_name].folder, dataset_name.upper(),
@@ -100,9 +100,12 @@ def plot_trajectories(dataset_sequences, exp_names,
 
                 if accuracies[dataset_name][sequence_name][exp_name].empty:
                     continue
+                acc_df = accuracies[dataset_name][sequence_name][exp_name]
+                if 'rmse' not in acc_df.columns or 'num_tracked_frames' not in acc_df.columns:
+                    continue
 
-                if not aligment_with_gt:                   
-                    accu = accuracies[dataset_name][sequence_name][exp_name]['rmse'] / accuracies[dataset_name][sequence_name][exp_name]['num_tracked_frames']
+                if not aligment_with_gt:
+                    accu = acc_df['rmse'] / acc_df['num_tracked_frames']
                     idx = accu.idxmin()
                     gt_file = os.path.join(vslam_lab_evaluation_folder_seq, f'{idx:05d}_gt.tum')
                     there_is_gt = False
@@ -127,11 +130,11 @@ def plot_trajectories(dataset_sequences, exp_names,
 
                 search_pattern = os.path.join(vslam_lab_evaluation_folder_seq, '*_KeyFrameTrajectory.tum*')
                 files = glob.glob(search_pattern)
-        
-                aligned_traj = pd.read_csv(files[idx], delimiter=' ')
-                pca_df = pd.DataFrame(aligned_traj, columns=['tx', 'ty', 'tz'])
                 if len(files) == 0:
                     continue
+
+                aligned_traj = pd.read_csv(files[idx], delimiter=' ')
+                pca_df = pd.DataFrame(aligned_traj, columns=['tx', 'ty', 'tz'])
                 if there_is_gt:
                     traj_transformed = pca.transform(pca_df)
                 else:
@@ -143,7 +146,7 @@ def plot_trajectories(dataset_sequences, exp_names,
                                     label=exp_name, marker='.', linestyle='-', color=baseline.color)
 
             x_ticks = [round(x_max, 1)]
-            y_ticks = [0,round(y_max, 1)]
+            y_ticks = [0, round(y_max, 1)]
             axs[i_traj].set_xticks(x_ticks)
             axs[i_traj].set_yticks(y_ticks)
 
@@ -151,9 +154,11 @@ def plot_trajectories(dataset_sequences, exp_names,
             axs[i_traj].xaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f'{x:.1f}'))
             axs[i_traj].yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: f'{y:.1f}'))
 
-            # Add minor ticks for the grid (every 10% of the axis range)
-            axs[i_traj].xaxis.set_minor_locator(ticker.MultipleLocator(x_max / 4))
-            axs[i_traj].yaxis.set_minor_locator(ticker.MultipleLocator(y_max / 4))
+            # Add minor ticks for the grid (every 25% of the axis range); ensure positive step
+            x_minor = max(x_max / 4, 0.25) if x_max > 0 else 0.25
+            y_minor = max(y_max / 4, 0.25) if y_max > 0 else 0.25
+            axs[i_traj].xaxis.set_minor_locator(ticker.MultipleLocator(x_minor))
+            axs[i_traj].yaxis.set_minor_locator(ticker.MultipleLocator(y_minor))
 
             # Enable the grid for both major and minor ticks, but keep labels only for major ticks
             axs[i_traj].grid(True, which='both', linestyle='--', linewidth=0.5, alpha=0.7)
@@ -239,11 +244,17 @@ def boxplot_exp_seq(values, dataset_sequences, metric_name, comparison_path, exp
             values_seq_exp = values[splt['dataset_name']][sequence_name][exp_name]
             if values_seq_exp.empty:
                 continue
+            if metric_name not in values_seq_exp.columns:
+                continue
+            series = values_seq_exp[metric_name]
+            valid = pd.to_numeric(series, errors='coerce').dropna()
+            if len(valid) == 0:
+                continue
             boxprops = medianprops = whiskerprops = capprops = dict(color=colors[exp_name])
             flierprops = dict(marker='o', color=colors[exp_name], alpha=1.0)
-            positions = [i_exp * WIDTH_PER_SERIES]   
+            positions = [i_exp * WIDTH_PER_SERIES]
             boxplot_accuracy = axs[splt['id']].boxplot(
-                values_seq_exp[metric_name],
+                [valid.values],
                 positions=positions, widths=WIDTH_PER_SERIES,
                 patch_artist=False,
                 boxprops=boxprops, medianprops=medianprops,
@@ -630,49 +641,59 @@ def num_tracked_frames(values, dataset_sequences, figures_path, experiments, sha
         colors[exp_name] = baseline.color
         legend_handles.append(Patch(color=colors[exp_name], label=exp_names[i_exp]))
 
-    # Plot boxplots        
-    max_rgb = {}      
+    # Plot boxplots
+    max_rgb = {}
     for sequence_name, splt in splts.items():
-        max_rgb[sequence_name] = 0
+        max_rgb[sequence_name] = 1
         for i_exp, exp_name in enumerate(exp_names):
             values_seq_exp = values[splt['dataset_name']][sequence_name][exp_name]
-            if not values_seq_exp.empty:
+            if not values_seq_exp.empty and 'num_frames' in values_seq_exp.columns:
                 num_frames = values[splt['dataset_name']][sequence_name][exp_name]['num_frames']
-                max_rgb[sequence_name] = max(max(num_frames), max_rgb[sequence_name])
+                if len(num_frames) > 0:
+                    max_rgb[sequence_name] = max(num_frames.max(), max_rgb[sequence_name])
 
     for sequence_name, splt in splts.items():
         for i_exp, exp_name in enumerate(exp_names):
-            values_seq_exp = values[splt['dataset_name']][sequence_name][exp_name]    
+            values_seq_exp = values[splt['dataset_name']][sequence_name][exp_name]
             if values_seq_exp.empty:
                 continue
+            if 'num_frames' not in values_seq_exp.columns or 'num_tracked_frames' not in values_seq_exp.columns or 'num_evaluated_frames' not in values_seq_exp.columns:
+                continue
 
-            num_frames = values_seq_exp['num_frames'] 
-            num_tracked_frames = values_seq_exp['num_tracked_frames'] 
-            num_evaluated_frames = values_seq_exp['num_evaluated_frames']   
-         
+            num_frames = values_seq_exp['num_frames']
+            num_tracked_frames = values_seq_exp['num_tracked_frames']
+            num_evaluated_frames = values_seq_exp['num_evaluated_frames']
+            if len(num_frames) == 0:
+                continue
+
+            scale = max(max_rgb[sequence_name], 1)
             if shared_scale:
-                num_frames /= max_rgb[sequence_name]
-                num_tracked_frames /= max_rgb[sequence_name]
-                num_evaluated_frames /= max_rgb[sequence_name]
+                num_frames = num_frames / scale
+                num_tracked_frames = num_tracked_frames / scale
+                num_evaluated_frames = num_evaluated_frames / scale
 
-            median_num_frames = np.median(num_frames)
-            median_num_tracked_frames = np.median(num_tracked_frames)
-            median_num_evaluated_frames = np.median(num_evaluated_frames)
-           
+            median_num_frames = np.nan_to_num(np.nanmedian(num_frames), nan=0.0)
+            median_num_tracked_frames = np.nan_to_num(np.nanmedian(num_tracked_frames), nan=0.0)
+            median_num_evaluated_frames = np.nan_to_num(np.nanmedian(num_evaluated_frames), nan=0.0)
+
             positions = np.array([3 * i_exp, 3 * i_exp + 1, 3 * i_exp + 2]) * WIDTH_PER_SERIES
             axs[splt['id']].bar(
-            positions, 
-            [median_num_frames, median_num_tracked_frames, median_num_evaluated_frames], 
-            color=colors[exp_name], alpha=0.3, width=WIDTH_PER_SERIES*0.9)
-            
+                positions,
+                [median_num_frames, median_num_tracked_frames, median_num_evaluated_frames],
+                color=colors[exp_name], alpha=0.3, width=WIDTH_PER_SERIES*0.9)
+
             metrics = [num_frames, num_tracked_frames, num_evaluated_frames]
             boxprops = medianprops = whiskerprops = capprops = dict(color=colors[exp_name])
-            flierprops = dict(marker='o', color=colors[exp_name], alpha=1.0)    
+            flierprops = dict(marker='o', color=colors[exp_name], alpha=1.0)
             for i, metric in enumerate(metrics):
-                positions = [(3 * i_exp + i) * WIDTH_PER_SERIES]
-                boxplot_accuracy = axs[splt['id']].boxplot(
-                    metrics[i],
-                    positions=positions, widths=WIDTH_PER_SERIES,
+                m = np.asarray(metric).flatten()
+                m = m[~np.isnan(m)] if m.size > 0 else np.array([0.0])
+                if m.size == 0:
+                    m = np.array([0.0])
+                positions_bp = [(3 * i_exp + i) * WIDTH_PER_SERIES]
+                axs[splt['id']].boxplot(
+                    [m],
+                    positions=positions_bp, widths=WIDTH_PER_SERIES,
                     patch_artist=False,
                     boxprops=boxprops, medianprops=medianprops,
                     whiskerprops=whiskerprops,
@@ -681,12 +702,13 @@ def num_tracked_frames(values, dataset_sequences, figures_path, experiments, sha
         if shared_scale:
             yticks = [0, 1]
         else:
-            yticks = [0, max_rgb[sequence_name]]
+            yticks = [0, max(max_rgb[sequence_name], 1)]
         axs[splt['id']].grid(True, which='both', linestyle='--', linewidth=0.5, alpha=0.7)
         axs[splt['id']].set_xticklabels([])
         axs[splt['id']].set_ylim(yticks)
-        axs[splt['id']].tick_params(axis='y', labelsize=FONT_SIZE) 
-        axs[splt['id']].yaxis.set_minor_locator(ticker.MultipleLocator(max_rgb[sequence_name] / 4))
+        axs[splt['id']].tick_params(axis='y', labelsize=FONT_SIZE)
+        minor_step = max_rgb[sequence_name] / 4 if max_rgb[sequence_name] > 0 else 1
+        axs[splt['id']].yaxis.set_minor_locator(ticker.MultipleLocator(minor_step))
         axs[splt['id']].set_yticks(yticks)
         if not shared_scale:    
             axs[splt['id']].set_yticks(yticks)

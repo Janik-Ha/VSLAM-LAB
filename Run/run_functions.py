@@ -6,6 +6,8 @@ import shutil
 from typing import Any
 from pathlib import Path
 
+import pandas as pd
+
 from Baselines.BaselineVSLAMLab_utilities import log_run_sequence_time
 from path_constants import RGB_BASE_FOLDER, VSLAMLAB_EVALUATION
 from Run import ablations
@@ -77,9 +79,17 @@ def create_rgb_exp_csv(exp, dataset, sequence_name, default_parameters = ""):
             _, _, downsampled_rows = downsample_rgb_frames(rgb_csv, max_rgb_num, min_fps, True)
 
         if rgb_idx:
-            downsampled_rows = get_rows(
-                list(range(exp.parameters['rgb_idx'][0], exp.parameters['rgb_idx'][1] + 1)), rgb_csv)
-        
+            start, end = exp.parameters['rgb_idx'][0], exp.parameters['rgb_idx'][1]
+            if end == -1:
+                n_rows = len(pd.read_csv(rgb_csv))
+                end = n_rows - 1
+            downsampled_rows = get_rows(list(range(start, end + 1)), rgb_csv)
+
+        if not downsampled_rows:
+            raise ValueError(
+                f"create_rgb_exp_csv: no rows selected for {sequence_path} "
+                f"(rgb_idx={exp.parameters.get('rgb_idx')}, max_rgb={exp.parameters.get('max_rgb')})"
+            )
         with open(rgb_exp_csv, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=list(downsampled_rows[0].keys()))
             writer.writeheader()

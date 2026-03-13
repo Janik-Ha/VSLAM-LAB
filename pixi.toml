@@ -106,6 +106,8 @@ download-dataset = "python vslamlab_gui.py download_dataset"
 
 setup-hilti2026 = "bash Utilities/setup_hilti2026.sh"
 
+hilti2026-benchmark = "bash Utilities/run_hilti2026_benchmark.sh"
+
 run-exp = "python vslamlab_gui.py run_exp"
 evaluate-exp = "python vslamlab_gui.py evaluate_exp"
 compare-exp = "python vslamlab_gui.py compare_exp"
