@@ -1,36 +1,12 @@
-<p align="center">
-<div align="center">
-    <img src="docs/header.png" width="500"/>
-</div>
-
-<h3 align="center"> A Comprehensive Framework for Visual SLAM Baselines and Datasets</h3> 
-
-<p align="center">
-    <a href="https://scholar.google.com/citations?user=SDtnGogAAAAJ&hl=en"><strong>Alejandro Fontan</strong></a>
-    ·
-    <a href="https://scholar.google.com/citations?user=eq46ylAAAAAJ&hl=en"><strong>Tobias Fischer</strong></a>
-    ·
-    <a href="https://nmarticorena.github.io/"><strong>Nicolas Marticorena</strong></a>
-</p>
-
- <p align="center">
-     <a href="https://www.linkedin.com/in/somayeh-hussaini/?originalSubdomain=au"><strong>Somayeh Hussaini</strong></a>
-    ·
-     <a href="https://github.com/TedVanderfeen"><strong>Ted Vanderfeen </strong></a>
-    ·
-     <a href="https://scholar.google.com/citations?hl=es&user=s3eIy0YAAAAJ"><strong>Beverley Gorry </strong></a>
-    ·
-    <a href="https://scholar.google.com/citations?user=j_sMzokAAAAJ&hl=en"><strong>Javier Civera</strong></a>
-    ·
-    <a href="https://scholar.google.com/citations?user=TDSmCKgAAAAJ&hl=en"><strong>Michael Milford</strong></a>
-</p>
-
-<br/>
 <div align="left">
 
-![Maintained? yes](https://img.shields.io/badge/Maintained%3F-yes-success) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](.github/CONTRIBUTING.md) ![Last commit](https://img.shields.io/github/last-commit/VSLAM-LAB/VSLAM-LAB) [![License](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://github.com/VSLAM-LAB/VSLAM-LAB/blob/main/LICENSE.txt) [![arXiv](https://img.shields.io/badge/arXiv-2410.23690-B31B1B.svg)](https://arxiv.org/abs/2504.04457)
-
+![Maintained? No]
 </div>
+
+# Adaption of VSLAM
+This is an adaption of VSLAM to run the Hilit x Trimbel Challenge 2026 Dataset in VSLAM. It works the same way as with the other datasets and has scripts to download the data.
+
+This repo is not maintained as I now use another Framework to run the Datasets.
 
 ## Introduction
 
